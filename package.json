@@ -13,7 +13,6 @@
     "@adobe/helix-gdocs2md": "github:adobe/helix-gdocs2md",
     "@adobe/helix-md2docx": "2.1.64",
     "@azure/msal-node": "2.10.0",
-    "@google-cloud/local-auth": "3.0.1",
     "@googleapis/docs": "3.0.2",
     "@googleapis/drive": "8.11.0",
     "@googleapis/sheets": "9.0.0",
