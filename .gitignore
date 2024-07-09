@@ -129,4 +129,4 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-adobe-franklin-*.json
+*-key.json

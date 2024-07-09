@@ -81,9 +81,15 @@ class GDriveClient extends ClientInterface {
     return file?.id;
   }
 
-  async #getDocumentHast(docPath) {
+  /* Documents methods */
+  async #getRawDocument(docPath) {
     const file = await this.getFile(docPath);
     const { data } = await this.#documentsClient.documents.get({ documentId: file.id });
+    return data;
+  }
+
+  async #getDocumentHast(docPath) {
+    const data = await this.#getRawDocument(docPath);
     const gdast = toGdast(data);
     const mdast = toMdast(gdast);
     dashedBreaks(mdast);
@@ -93,6 +99,21 @@ class GDriveClient extends ClientInterface {
 
   async #getBlockNameSelector(blockName) {
     return `table:has(text[value="${blockName}"],text[value="${blockName.toLowerCase()}"])`;
+  }
+
+  async #getElementPosition(doc, sectionIndex, index) {
+    let sIdx = 0;
+    let structuralElementIdx = 0;
+    const sibling = doc.body.content.find((c) => {
+      if (['---\n', '—\n'].includes(c.paragraph?.elements[0].textRun?.content)) {
+        sIdx++;
+        structuralElementIdx = 0;
+      } else {
+        structuralElementIdx += 1;
+      }
+      return sIdx === sectionIndex && structuralElementIdx === index;
+    });
+    return sibling ? sibling.endIndex : -1;
   }
 
   /* File methods */
@@ -301,6 +322,13 @@ class GDriveClient extends ClientInterface {
   }
 
   /* Documents methods */
+  async getDocument(docPath) {
+    const file = await this.getFile(docPath);
+    const { data } = await this.#documentsClient.documents.get({ documentId: file.id });
+    const gdast = toGdast(data);
+    return data;
+  }
+
   async getPageMetadata(docPath) {
     return this.getBlock(docPath, 'Metadata');
   }
@@ -333,6 +361,62 @@ class GDriveClient extends ClientInterface {
   async getBlocks(docPath, blockName) {
     const tree = await this.#getDocumentHast(docPath);
     return selectAll(await this.#getBlockNameSelector(blockName), tree);
+  }
+
+  async insertBlockAt(docPath, sectionIndex, index, blockData) {
+    const data = await this.#getRawDocument(docPath);
+    const position = await this.#getElementPosition(data, sectionIndex, index);
+    const rows = blockData.length;
+    const columns = blockData[0].length;
+    let start;
+    let end = position + 2;
+    return this.#documentsClient.documents.batchUpdate({
+      documentId: data.documentId,
+      requestBody: {
+        requests: [
+          {
+            insertTable: {
+              rows,
+              columns,
+              location: {
+                index: position
+              },
+            },
+          },
+          ...blockData.map((row, i) => row.map((cell, j) => {
+            if (!j) { end += 1; }
+            start = end + 1;
+            end = start + cell.length + 1;
+            return {
+              insertText: {
+                text: cell,
+                location: {
+                  index: start,
+                }
+              }
+            }
+          })).flat().filter((cell) => cell.insertText.text)
+      ],
+      }
+    });
+  }
+
+  async removeBlock(docPath, blockIndex) {
+    const data = await this.#getRawDocument(docPath);
+    const block = data.body.content.filter((c) => c.table)[blockIndex];
+    return this.#documentsClient.documents.batchUpdate({
+      documentId: data.documentId,
+      requestBody: {
+        requests: [{
+          deleteContentRange: {
+            range: {
+              startIndex: block.startIndex,
+              endIndex: block.endIndex
+            }
+          }
+        }],
+      }
+    });
   }
 }
 
