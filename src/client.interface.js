@@ -1,4 +1,15 @@
 export default class ClientInterface {
+
+  _parseFilePath(fullPath) {
+    const tokens = fullPath.split('/');
+    const newName = tokens.pop();
+    const destinationPath = tokens.join('/') || '/';
+    return {
+      name: newName,
+      path: destinationPath
+    };
+  }
+
   async getFile(filePath) { throw new Error('Not yet implemented.'); }
   async getFiles(folderPath) { throw new Error('Not yet implemented.'); }
   async copyFile(filePath, destination) { throw new Error('Not yet implemented.'); }
@@ -34,6 +45,5 @@ export default class ClientInterface {
   async removeSection(docPath, sectionindex) { throw new Error('Not yet implemented.'); }
   async updateBlock(docPath, blockIndex, blockMd) { throw new Error('Not yet implemented.'); }
   async appendBlock(docPath, sectionIndex, blockMd) { throw new Error('Not yet implemented.'); }
-  async insertBlockAt(docPath, sectionIndex, index, blockMd) { throw new Error('Not yet implemented.'); }
   */
 }

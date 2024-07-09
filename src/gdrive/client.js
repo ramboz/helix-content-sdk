@@ -133,9 +133,7 @@ class GDriveClient extends ClientInterface {
 
   async copyFile(filePath, destination) {
     const file = await this.getFile(filePath);
-    const tokens = destination.split('/');
-    const newName = tokens.pop();
-    const destinationPath = tokens.join('/') || '/';
+    const { name: newName, path: destinationPath } = this._parseFilePath(destination);
     const destinationId = await this.#getFileIdFromPath(destinationPath);
     let { data } = await this.#client.files.copy({ fileId: file.id });
     if (file.parents[0].id === destinationId && !newName) {
@@ -154,9 +152,7 @@ class GDriveClient extends ClientInterface {
 
   async moveFile(filePath, destination) {
     const file = await this.getFile(filePath);
-    const tokens = destination.split('/');
-    const newName = tokens.pop();
-    const destinationPath = tokens.join('/') || '/';
+    const { name: newName, path: destinationPath } = this._parseFilePath(destination);
     const destinationId = await this.#getFileIdFromPath(destinationPath);
     const { data } = await this.#client.files.update({
       fileId: file.id,
