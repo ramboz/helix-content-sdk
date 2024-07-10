@@ -1,8 +1,11 @@
 import graph from '@microsoft/microsoft-graph-client';
-import ClientInterface from '../client.interface.js';
+import docx2dast from '@adobe/helix-docx2md/src/docx2dast/docx2dast.js';
+import dast2mdast from '@adobe/helix-docx2md/src/dast2mdast/dast2mdast.js';
+import fetch from 'node-fetch';
+import GenericClient from '../generic.client.js';
 import { colIndexToLetter, parseFilePath } from '../utils.js';
 
-class SharepointClient extends ClientInterface {
+class SharepointClient extends GenericClient {
   #client;
   #baseUri;
 
@@ -18,6 +21,16 @@ class SharepointClient extends ClientInterface {
   /* Helper methods */
   #getFullPath(filePath) {
     return `${this.#baseUri}${filePath}`;
+  }
+
+  async #getRawDocument(docPath) {
+    let response = await this.#client.api(`${this.#getFullPath(docPath)}`).get();
+    const url = response['@microsoft.graph.downloadUrl'];
+    response = await fetch(url);
+    const data = Buffer.from(await response.arrayBuffer());
+    const dast = await docx2dast(data, {});
+    const mdast = await dast2mdast(dast, {});
+    return mdast;
   }
 
   /* File methods */
@@ -129,12 +142,18 @@ class SharepointClient extends ClientInterface {
   }
 
   /* Documents methods */
-  // async getPageMetadata(docPath) {}
+  async getDocument(docPath) {
+    const data = await this.#getRawDocument(docPath);
+    return data;
+  }
+
+  async getPageMetadata(docPath) {
+    return this.getBlock(docPath, 'Metadata');
+  }
+
   // async getSectionMetadata(docPath, sectionindex) {}
   // async getSections(docPath) {}
   // async getSection(docPath, sectionIndex) {}
-  // async getBlocks(docPath, blockName) {}
-  // async getBlock(docPath, blockName) {}
   // async insertBlockAt(docPath, sectionIndex, index, blockData) {}
   // async removeBlock(docPath, blockIndex) {}
   // async updatePageMetadata(docPath, metadata) {}

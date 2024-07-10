@@ -20,6 +20,7 @@ export default class ClientInterface {
   async deleteRowFromSheet(workbookPath, sheetId, index) { throw new Error('Not yet implemented.'); }
 
   /* Document operations */
+  async getDocument(docPath) { throw new Error('Not yet implemented.'); }
   async getPageMetadata(docPath) { throw new Error('Not yet implemented.'); }
   async getSectionMetadata(docPath, sectionindex) { throw new Error('Not yet implemented.'); }
   async getSections(docPath) { throw new Error('Not yet implemented.'); }

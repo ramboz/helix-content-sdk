@@ -17,6 +17,7 @@
     "@googleapis/drive": "8.11.0",
     "@googleapis/sheets": "9.0.0",
     "@microsoft/microsoft-graph-client": "3.0.7",
+    "node-fetch": "3.3.2",
     "unist-util-find-all-after": "5.0.0",
     "unist-util-find-all-between": "2.1.0",
     "unist-util-select": "5.1.0"
