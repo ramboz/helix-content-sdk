@@ -5,6 +5,11 @@ It currently supports 2 backends:
 - Microsoft Sharepoint, via an application service principal
 - Google Drive, via a service account
 
+:warning: Still early stage, so use at your own risk knowing we have:
+- No input validation
+- No error handling
+- No tests
+
 ## Install
 
 Just run:
