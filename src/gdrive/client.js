@@ -5,7 +5,7 @@ import { select, selectAll } from 'unist-util-select';
 import between from 'unist-util-find-all-between';
 import { findAllAfter } from 'unist-util-find-all-after';
 import ClientInterface from '../client.interface.js';
-import { asyncFind } from '../utils.js';
+import { asyncFind, colIndexToLetter, parseFilePath } from '../utils.js';
 import toGdast from '@adobe/helix-gdocs2md/src/gdoc2gdast.js';
 import toMdast from '@adobe/helix-gdocs2md/src/gdoc2mdast/index.js';
 import dashedBreaks from '@adobe/helix-gdocs2md/src/mdast-dashed-breaks.js';
@@ -133,7 +133,7 @@ class GDriveClient extends ClientInterface {
 
   async copyFile(filePath, destination) {
     const file = await this.getFile(filePath);
-    const { name: newName, path: destinationPath } = this._parseFilePath(destination);
+    const { name: newName, path: destinationPath } = parseFilePath(destination);
     const destinationId = await this.#getFileIdFromPath(destinationPath);
     let { data } = await this.#client.files.copy({ fileId: file.id });
     if (file.parents[0].id === destinationId && !newName) {
@@ -152,7 +152,7 @@ class GDriveClient extends ClientInterface {
 
   async moveFile(filePath, destination) {
     const file = await this.getFile(filePath);
-    const { name: newName, path: destinationPath } = this._parseFilePath(destination);
+    const { name: newName, path: destinationPath } = parseFilePath(destination);
     const destinationId = await this.#getFileIdFromPath(destinationPath);
     const { data } = await this.#client.files.update({
       fileId: file.id,
@@ -211,8 +211,7 @@ class GDriveClient extends ClientInterface {
   }
 
   async updateSheetRowAt(workbookPath, sheetId, index, values) {
-    const rangeEnd = (values.length > 26 ? String.fromCharCode(64 + Math.floor(values.length / 26)) : '')
-      + String.fromCharCode(64 + (values.length % 26));
+    const rangeEnd = colIndexToLetter(values.length);
     const workbookId = await this.#getFileIdFromPath(workbookPath);
     const { data } = await this.#sheetsClient.spreadsheets.values.update({
       spreadsheetId: workbookId,
@@ -414,6 +413,15 @@ class GDriveClient extends ClientInterface {
       }
     });
   }
+
+  // async updatePageMetadata(docPath, metadata) {}
+  // async updateSection(docPath, sectionIndex, sectionMd) {}
+  // async appendSection(docPath, sectionMd) {}
+  // async insertSectionAt(docPath, index, sectionMd) {}
+  // async updateSectionMetadata(docPath, sectionIndex, metadata) {}
+  // async removeSection(docPath, sectionindex) {}
+  // async updateBlock(docPath, blockIndex, blockMd) {}
+  // async appendBlock(docPath, sectionIndex, blockMd) {}
 }
 
 export async function init(options) {
