@@ -1,8 +1,6 @@
 import { select, selectAll } from 'unist-util-select';
-import between from 'unist-util-find-all-between';
-import { findAllAfter } from 'unist-util-find-all-after';
 import ClientInterface from './client.interface.js';
-import { getBlockNameSelector } from './utils.js';
+import { getBlockNameSelector, getSectionsFromMdast, mdastTableToObject } from './utils.js';
 
 export default class GenericClient extends ClientInterface {
   async getBlock(docPath, blockName) {
@@ -16,7 +14,8 @@ export default class GenericClient extends ClientInterface {
   }
 
   async getPageMetadata(docPath) {
-    return this.getBlock(docPath, 'Metadata');
+    const table = await this.getBlock(docPath, 'Metadata');
+    return mdastTableToObject(table);
   }
 
   async getSection(docPath, sectionIndex) {
@@ -26,16 +25,12 @@ export default class GenericClient extends ClientInterface {
 
   async getSections(docPath) {
     const tree = await this.getDocument(docPath);
-    const sectionBreaks = selectAll('thematicBreak', tree);
-    const sections = [];
-    for (let i = 1; i < sectionBreaks.length; i += 1) {
-      sections.push(between(tree, tree.children.indexOf(sectionBreaks[i-1]), tree.children.indexOf(sectionBreaks[i])));
-    }
-    sections.push(findAllAfter(tree, sectionBreaks[sectionBreaks.length - 1]));
-    return sections;
+    return getSectionsFromMdast(tree);
   }
 
   async getSectionMetadata(docPath, sectionindex = 0) {
-    return (await this.getBlocks(docPath, 'Section Metadata'))[sectionindex];
+    const blocks = await this.getBlocks(docPath, 'Section Metadata');
+    const table = blocks[sectionindex];
+    return mdastTableToObject(table);
   }
 }

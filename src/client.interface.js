@@ -22,7 +22,7 @@ export default class ClientInterface {
   /* Document operations */
   async getDocument(docPath) { throw new Error('Not yet implemented.'); }
   async getPageMetadata(docPath) { throw new Error('Not yet implemented.'); }
-  async getSectionMetadata(docPath, sectionindex) { throw new Error('Not yet implemented.'); }
+  async getSectionMetadata(docPath, sectionIndex) { throw new Error('Not yet implemented.'); }
   async getSections(docPath) { throw new Error('Not yet implemented.'); }
   async getSection(docPath, sectionIndex) { throw new Error('Not yet implemented.'); }
   async getBlocks(docPath, blockName) { throw new Error('Not yet implemented.'); }
@@ -30,11 +30,7 @@ export default class ClientInterface {
   async insertBlockAt(docPath, sectionIndex, index, blockData) { throw new Error('Not yet implemented.'); }
   async removeBlock(docPath, blockIndex) { throw new Error('Not yet implemented.'); }
   async updatePageMetadata(docPath, metadata) { throw new Error('Not yet implemented.'); }
-  async updateSection(docPath, sectionIndex, sectionMd) { throw new Error('Not yet implemented.'); }
-  async appendSection(docPath, sectionMd) { throw new Error('Not yet implemented.'); }
-  async insertSectionAt(docPath, index, sectionMd) { throw new Error('Not yet implemented.'); }
   async updateSectionMetadata(docPath, sectionIndex, metadata) { throw new Error('Not yet implemented.'); }
-  async removeSection(docPath, sectionindex) { throw new Error('Not yet implemented.'); }
-  async updateBlock(docPath, blockIndex, blockMd) { throw new Error('Not yet implemented.'); }
-  async appendBlock(docPath, sectionIndex, blockMd) { throw new Error('Not yet implemented.'); }
+  async updateBlock(docPath, blockIndex, blockData) { throw new Error('Not yet implemented.'); }
+  async appendBlock(docPath, sectionIndex, blockData) { throw new Error('Not yet implemented.'); }
 }

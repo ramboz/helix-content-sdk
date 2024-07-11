@@ -366,13 +366,9 @@ class GDriveClient extends GenericClient {
   }
 
   // async updatePageMetadata(docPath, metadata) {}
-  // async updateSection(docPath, sectionIndex, sectionMd) {}
-  // async appendSection(docPath, sectionMd) {}
-  // async insertSectionAt(docPath, index, sectionMd) {}
   // async updateSectionMetadata(docPath, sectionIndex, metadata) {}
-  // async removeSection(docPath, sectionindex) {}
-  // async updateBlock(docPath, blockIndex, blockMd) {}
-  // async appendBlock(docPath, sectionIndex, blockMd) {}
+  // async updateBlock(docPath, blockIndex, blockData) {}
+  // async appendBlock(docPath, sectionIndex, blockData) {}
 }
 
 export async function init(options) {

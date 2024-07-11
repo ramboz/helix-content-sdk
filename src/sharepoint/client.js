@@ -1,6 +1,8 @@
 import graph from '@microsoft/microsoft-graph-client';
 import docx2dast from '@adobe/helix-docx2md/src/docx2dast/docx2dast.js';
 import dast2mdast from '@adobe/helix-docx2md/src/dast2mdast/dast2mdast.js';
+import { mdast2docx } from '@adobe/helix-md2docx';
+import deepEqual from 'deep-equal';
 import fetch from 'node-fetch';
 import GenericClient from '../generic.client.js';
 import { colIndexToLetter, parseFilePath } from '../utils.js';
@@ -27,10 +29,42 @@ class SharepointClient extends GenericClient {
     let response = await this.#client.api(`${this.#getFullPath(docPath)}`).get();
     const url = response['@microsoft.graph.downloadUrl'];
     response = await fetch(url);
-    const data = Buffer.from(await response.arrayBuffer());
-    const dast = await docx2dast(data, {});
-    const mdast = await dast2mdast(dast, {});
-    return mdast;
+    return Buffer.from(await response.arrayBuffer());
+  }
+
+  async #uploadDocument(docPath, mdast) {
+    const buffer = await mdast2docx(mdast);
+    console.log(`${this.#getFullPath(docPath)}:/content`);
+    return this.#client.api(`${this.#getFullPath(docPath)}:/content`).putStream(buffer);
+  }
+
+  async #updateDocument(docPath, updateFunction) {
+    const doc = await this.getDocument(docPath);
+    const initial = structuredClone(doc);
+    await updateFunction(doc);
+    if (deepEqual(initial, doc, { strict: true })) {
+      return;
+    }
+    return this.#uploadDocument(docPath, doc);
+  }
+
+  #matrixToMdastTable(matrix) {
+    return {
+      type: 'table',
+      children: matrix.map((row) => ({
+        type: 'tableRow',
+        children: row.map((cell) => ({
+          type: 'tableCell',
+          children: [{
+            type: 'paragraph',
+            children: [{
+              type: 'text',
+              value: cell // TODO: support MD markup for complex cells?
+            }],
+          }],
+        })),
+      })),
+    };
   }
 
   /* File methods */
@@ -121,14 +155,12 @@ class SharepointClient extends GenericClient {
     const response = await this.#client.api(`${this.#getFullPath(workbookPath)}:/workbook/worksheets/${sheetId}/range(address='A:ZZ')/usedRange`)
       .get();
     const cols = response.columnCount;
-    console.log(1, cols, values);
     return this.insertColumnIntoSheetAt(workbookPath, sheetId, cols + 1, values);
   }
 
   async insertColumnIntoSheetAt(workbookPath, sheetId, index, values) {
     const column = colIndexToLetter(index);
     const range = `${column}1:${column}${values.length}`;
-    console.log(2, range);
     await this.#client.api(`${this.#getFullPath(workbookPath)}:/workbook/worksheets/${sheetId}/range(address='${range}')/insert`)
       .post({ shift: 'Right' });
     return this.updateSheetColumnAt(workbookPath, sheetId, index, values);
@@ -144,26 +176,85 @@ class SharepointClient extends GenericClient {
   /* Documents methods */
   async getDocument(docPath) {
     const data = await this.#getRawDocument(docPath);
-    return data;
+    const dast = await docx2dast(data, {});
+    const mdast = await dast2mdast(dast, {});
+    return mdast;
   }
 
-  async getPageMetadata(docPath) {
-    return this.getBlock(docPath, 'Metadata');
+  async appendBlock(docPath, sectionIndex, blockData) {
+    return this.#updateDocument(docPath, (mdast) => {
+      let sectionIdx = 0;
+      const elementIdx = mdast.children.findIndex((c) => {
+        if (c.type === 'thematicBreak') {
+          sectionIdx += 1;
+        }
+        return sectionIdx > sectionIndex;
+      })
+      const table = this.#matrixToMdastTable(blockData);
+      if (elementIdx !== -1) {
+        mdast.children.splice(elementIdx, 0, table);
+      } else {
+        mdast.children.push(table);
+      }
+    });
   }
 
-  // async getSectionMetadata(docPath, sectionindex) {}
-  // async getSections(docPath) {}
-  // async getSection(docPath, sectionIndex) {}
-  // async insertBlockAt(docPath, sectionIndex, index, blockData) {}
-  // async removeBlock(docPath, blockIndex) {}
-  // async updatePageMetadata(docPath, metadata) {}
-  // async updateSection(docPath, sectionIndex, sectionMd) {}
-  // async appendSection(docPath, sectionMd) {}
-  // async insertSectionAt(docPath, index, sectionMd) {}
-  // async updateSectionMetadata(docPath, sectionIndex, metadata) {}
-  // async removeSection(docPath, sectionindex) {}
-  // async updateBlock(docPath, blockIndex, blockMd) {}
-  // async appendBlock(docPath, sectionIndex, blockMd) {}
+  async insertBlockAt(docPath, sectionIndex, index, blockData) {
+    return this.#updateDocument(docPath, (mdast) => {
+      let sectionIdx = 0;
+      let elementIdx = 0;
+      mdast.children.find((c) => {
+        if (c.type === 'thematicBreak') {
+          sectionIdx += 1;
+          elementIdx = 0;
+        }
+        elementIdx += 1;
+        if (index === elementIdx) {
+          return true;
+        }
+        return sectionIdx > sectionIndex;
+      });
+      const table = this.#matrixToMdastTable(blockData);
+      mdast.children.splice(elementIdx, 0, table);
+    });
+  }
+
+  async updateBlock(docPath, blockIndex, blockData) {
+    return this.#updateDocument(docPath, (mdast) => {
+      const blocks = mdast.children.filter((c) => c.type === 'table');
+      const block = blocks[blockIndex];
+      const index = mdast.children.findIndex((c) => c === block);
+      const table = this.#matrixToMdastTable(blockData);
+      mdast.children[index] = table;
+    });
+  }
+
+  async removeBlock(docPath, blockIndex) {
+    return this.#updateDocument(docPath, (mdast) => {
+      const blocks = mdast.children.filter((c) => c.type === 'table');
+      const block = blocks[blockIndex];
+      const index = mdast.children.findIndex((c) => c === block);
+      mdast.children.splice(index, 1);
+    });
+  }
+
+  async updatePageMetadata(docPath, metadata) {
+    return this.#updateDocument(docPath, (mdast) => {
+      const blockIndex = mdast.children.findIndex((c) => c.type === 'table' && c.children[0].children[0].children[0].children[0].value.toLowerCase() === 'metadata');
+      const block = mdast.children[blockIndex];
+      const table = this.#matrixToMdastTable(Object.entries(metadata));
+      block.children = [block.children[0], ...table.children];
+    });
+  }
+
+  async updateSectionMetadata(docPath, sectionIndex, metadata) {
+    return this.#updateDocument(docPath, (mdast) => {
+      const blocks = mdast.children.filter((c) => c.type === 'table' && c.children[0].children[0].children[0].children[0].value.toLowerCase() === 'section metadata');
+      const block = blocks[sectionIndex];
+      const table = this.#matrixToMdastTable(Object.entries(metadata));
+      block.children = [block.children[0], ...table.children];
+    });
+  }
 }
 
 export async function init(options) {
