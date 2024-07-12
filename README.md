@@ -87,4 +87,4 @@ console.log(results);
 
 ## Client API
 
-See: [](./src/client.interface.js)
+See: [client.interface.js](/src/client.interface.js)
