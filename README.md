@@ -81,7 +81,7 @@ const client = await getClient({
   }
 });
 
-const results = await client.getPageMetadata('/index');
+const results = await client.getPageMetadata('/index.docx');
 console.log(results);
 ```
 
