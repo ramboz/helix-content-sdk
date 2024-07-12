@@ -76,7 +76,6 @@ const client = await getClient({
   documentStoreConfig: {
     domain: /* Your sharepoint domain, i.e. 'adobe.sharepoint.com' */ ,
     domainId: /* The id for your domain, you can get it from the graph explorer */,
-    siteId: /* The id for the sharepoint site collection that contains your project files */,
     rootPath: /* The path from the collection root to the actual website root, i.e. '/sites/my-site' */,
   }
 });
