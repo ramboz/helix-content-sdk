@@ -39,7 +39,7 @@ class SharepointClient extends GenericClient {
   }
 
   async #updateDocument(docPath, updateFunction) {
-    const doc = await this.getDocument(docPath);
+    const doc = await this.getDocumentContent(docPath);
     const initial = structuredClone(doc);
     await updateFunction(doc);
     if (deepEqual(initial, doc, { strict: true })) {
@@ -72,8 +72,8 @@ class SharepointClient extends GenericClient {
     return this.#client.api(this.#getFullPath(filePath)).get();
   }
 
-  async getFiles() {
-    return this.#client.api(`${this.#baseUri}:/children`).get();
+  async listFiles(folderPath = '/') {
+    return this.#client.api(`${this.#getFullPath(folderPath)}:/children`).get();
   }
 
   async copyFile(filePath, destination) {
@@ -180,7 +180,7 @@ class SharepointClient extends GenericClient {
   }
 
   /* Documents methods */
-  async getDocument(docPath) {
+  async getDocumentContent(docPath) {
     const data = await this.#getRawDocument(docPath);
     const dast = await docx2dast(data, {});
     const mdast = await dast2mdast(dast, {});

@@ -4,12 +4,12 @@ import { getBlockNameSelector, getSectionsFromMdast, mdastTableToObject } from '
 
 export default class GenericClient extends ClientInterface {
   async getBlock(docPath, blockName) {
-    const tree = await this.getDocument(docPath);
+    const tree = await this.getDocumentContent(docPath);
     return select(await getBlockNameSelector(blockName), tree);
   }
 
   async getBlocks(docPath, blockName) {
-    const tree = await this.getDocument(docPath);
+    const tree = await this.getDocumentContent(docPath);
     return selectAll(await getBlockNameSelector(blockName), tree);
   }
 
@@ -24,7 +24,7 @@ export default class GenericClient extends ClientInterface {
   }
 
   async getSections(docPath) {
-    const tree = await this.getDocument(docPath);
+    const tree = await this.getDocumentContent(docPath);
     return getSectionsFromMdast(tree);
   }
 

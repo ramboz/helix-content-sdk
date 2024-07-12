@@ -87,37 +87,4 @@ console.log(results);
 
 ## Client API
 
-```js
-  /* File operations */
-  async getFile(filePath)
-  async getFiles(folderPath)
-  async copyFile(filePath, destination)
-  async moveFile(filePath, newFilePath)
-  async deleteFile(filePath)
-
-  /* Sheet operations */
-  async appendRowToSheet(workbookPath, sheetId, values)
-  async insertRowIntoSheetAt(workbookPath, sheetId, index, values)
-  async updateSheetRowAt(workbookPath, sheetId, index, values)
-  async appendColumnToSheet(workbookPath, sheetId, values)
-  async insertColumnIntoSheetAt(workbookPath, sheetId, index, values)
-  async updateSheetColumnAt(workbookPath, sheetId, index, values)
-  async getCellRangeInSheet(workbookPath, sheetId, range)
-  async findRowInSheet(workbookPath, sheetId, filter)
-  async findRowsInSheet(workbookPath, sheetId, filter)
-  async deleteRowFromSheet(workbookPath, sheetId, index)
-
-  /* Document operations */
-  async getPageMetadata(docPath)
-  async getSectionMetadata(docPath, sectionindex)
-  async getSections(docPath)
-  async getSection(docPath, sectionIndex)
-  async getBlocks(docPath, blockName)
-  async getBlock(docPath, blockName)
-  async updatePageMetadata(docPath, metadata)
-  async updateSectionMetadata(docPath, sectionIndex, metadata)
-  async appendBlock(docPath, sectionIndex, blockData)
-  async updateBlock(docPath, blockIndex, blockData)
-  async removeBlock(docPath, blockIndex)
-  async insertBlockAt(docPath, sectionIndex, index, blockData)
-```
+See: [](./src/client.interface.js)

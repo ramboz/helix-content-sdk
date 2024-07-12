@@ -179,7 +179,7 @@ class GDriveClient extends GenericClient {
     return data;
   }
 
-  async getFiles(folderPath = '/') {
+  async listFiles(folderPath = '/') {
     const parentId = folderPath !== '/' ? await this.#getFileIdFromPath(folderPath) : this.#driveId;
     const { data: { items: files } } = await this.#client.files.list({
       q: `trashed = false and '${parentId}' in parents`,
@@ -241,7 +241,7 @@ class GDriveClient extends GenericClient {
     return data;
   }
 
-  async insertSheetRowAt(workbookPath, sheetId, index, values) {
+  async insertRowIntoSheetAt(workbookPath, sheetId, index, values) {
     const workbookId = await this.#getFileIdFromPath(workbookPath);
     let res = await this.#sheetsClient.spreadsheets.get({
       spreadsheetId: workbookId,
@@ -330,7 +330,7 @@ class GDriveClient extends GenericClient {
       spreadsheetId: workbookId,
       range: `${sheetId}${range ? `!${range}`: ''}`,
     });
-    return data;
+    return data.values;
   }
 
   async findRowInSheet(workbookPath, sheetId, filter) {
@@ -372,12 +372,15 @@ class GDriveClient extends GenericClient {
   }
 
   /* Documents methods */
-  async getDocument(docPath) {
+  async getDocumentContent(docPath) {
     const data = await this.#getRawDocument(docPath);
     const gdast = toGdast(data);
     const mdast = toMdast(gdast);
     dashedBreaks(mdast);
     processInternalLinks(mdast);
+    if (mdast.children[0].type === 'thematicBreak') {
+      mdast.children = mdast.children.slice(1);
+    }
     return mdast;
   }
 

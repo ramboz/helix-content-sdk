@@ -31,7 +31,7 @@ export function colIndexToLetter(number) {
 export function getSectionsFromMdast(mdast) {
   const sectionBreaks = selectAll('thematicBreak', mdast);
   if (!sectionBreaks.length) {
-    return [mdast];
+    return [mdast.children];
   }
   const sections = [];
   sections.push(findAllBefore(mdast, mdast.children.indexOf(sectionBreaks[0])));
