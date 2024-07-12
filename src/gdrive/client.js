@@ -18,7 +18,7 @@ class GDriveClient extends GenericClient {
   constructor(options) {
     super();
     this.#client = drive.drive({
-      version: 'v2',
+      version: 'v2', // Using v2, since v3 dropped the parents in the response
       auth: options.auth,
     });
     this.#sheetsClient = sheets.sheets({
@@ -98,6 +98,78 @@ class GDriveClient extends GenericClient {
       return sIdx === sectionIndex && structuralElementIdx === index;
     });
     return sibling ? sibling.endIndex : -1;
+  }
+
+  #getFillTableRequests(index, blockData) {
+    let start;
+    let end = index + 2;
+    return blockData.map((row) => row.map((cell, j) => {
+      if (!j) { end += 1; }
+      start = end + 1;
+      end = start + cell.length + 1;
+      return {
+        insertText: {
+          text: cell,
+          location: {
+            index: start,
+          }
+        }
+      }
+    })).flat().filter((cell) => cell.insertText.text)
+  }
+
+  async #insertBlock(documentId, index, blockData) {
+    const rows = blockData.length;
+    const columns = blockData[0].length;
+    return this.#documentsClient.documents.batchUpdate({
+      documentId: documentId,
+      requestBody: {
+        requests: [
+          {
+            insertTable: {
+              rows,
+              columns,
+              location: { index },
+            },
+          },
+          ...this.#getFillTableRequests(index, blockData),
+      ],
+      }
+    });
+  }
+
+  async #updateBlockContent(documentId, block, blockData) {
+    const tableIndex = block.startIndex;
+    return this.#documentsClient.documents.batchUpdate({
+      documentId: documentId,
+      requestBody: {
+        requests: [
+          ...block.table.tableRows.slice(1).reverse().map((_, i, arr) => {
+            return {
+              deleteTableRow: {
+                tableCellLocation: {
+                  tableStartLocation: {
+                    index: tableIndex,
+                  },
+                  rowIndex: arr.length - i
+                }
+              }
+            }
+          }),
+          ...blockData.map(() => ({
+            insertTableRow: {
+              tableCellLocation: {
+                tableStartLocation: {
+                  index: tableIndex,
+                },
+              },
+              insertBelow: true,
+            }
+          })),
+          ...this.#getFillTableRequests(block.table.tableRows[0].endIndex, blockData),
+      ],
+      }
+    });
   }
 
   /* File methods */
@@ -309,42 +381,23 @@ class GDriveClient extends GenericClient {
     return mdast;
   }
 
+  async appendBlock(docPath, sectionIndex, blockData) {
+    const data = await this.#getRawDocument(docPath);
+    let sIdx = 0;
+    const nextSectionIndex = data.body.content.findIndex((c) => {
+      if (['---\n', '—\n'].includes(c.paragraph?.elements[0].textRun?.content)) {
+        sIdx++;
+      }
+      return sIdx > sectionIndex;
+    });
+    const sibling = data.body.content[nextSectionIndex - 1];
+    return this.#insertBlock(data.documentId, sibling.endIndex, blockData);
+  }
+
   async insertBlockAt(docPath, sectionIndex, index, blockData) {
     const data = await this.#getRawDocument(docPath);
     const position = await this.#getElementPosition(data, sectionIndex, index);
-    const rows = blockData.length;
-    const columns = blockData[0].length;
-    let start;
-    let end = position + 2;
-    return this.#documentsClient.documents.batchUpdate({
-      documentId: data.documentId,
-      requestBody: {
-        requests: [
-          {
-            insertTable: {
-              rows,
-              columns,
-              location: {
-                index: position
-              },
-            },
-          },
-          ...blockData.map((row, i) => row.map((cell, j) => {
-            if (!j) { end += 1; }
-            start = end + 1;
-            end = start + cell.length + 1;
-            return {
-              insertText: {
-                text: cell,
-                location: {
-                  index: start,
-                }
-              }
-            }
-          })).flat().filter((cell) => cell.insertText.text)
-      ],
-      }
-    });
+    return this.#insertBlock(data.documentId, position, blockData);
   }
 
   async removeBlock(docPath, blockIndex) {
@@ -365,10 +418,30 @@ class GDriveClient extends GenericClient {
     });
   }
 
-  // async updatePageMetadata(docPath, metadata) {}
-  // async updateSectionMetadata(docPath, sectionIndex, metadata) {}
-  // async updateBlock(docPath, blockIndex, blockData) {}
-  // async appendBlock(docPath, sectionIndex, blockData) {}
+  async updatePageMetadata(docPath, metadata) {
+    const data = await this.#getRawDocument(docPath);
+    const metadataTable = data.body.content.find((c) => c.table?.tableRows[0]?.tableCells[0]?.content[0]?.paragraph.elements[0].textRun.content.toLowerCase() === 'metadata\n');
+    
+    const metadataMatrix = Object.entries(metadata);
+    return this.#updateBlockContent(data.documentId, metadataTable, metadataMatrix);
+  }
+
+  async updateSectionMetadata(docPath, sectionIndex, metadata) {
+    const data = await this.#getRawDocument(docPath);
+    const sections = data.body.content.filter((c) => c.table?.tableRows[0]?.tableCells[0]?.content[0]?.paragraph.elements[0].textRun.content.toLowerCase() === 'section metadata\n');
+    const sectionMetadataTable = sections[sectionIndex];
+    
+    const metadataMatrix = Object.entries(metadata);
+    return this.#updateBlockContent(data.documentId, sectionMetadataTable, metadataMatrix);
+  }
+
+  async updateBlock(docPath, blockIndex, blockData) {
+    const data = await this.#getRawDocument(docPath);
+    const blocks = data.body.content.filter((c) => c.table);
+    const blockTable = blocks[blockIndex];
+    
+    return this.#updateBlockContent(data.documentId, blockTable, blockData);
+  }
 }
 
 export async function init(options) {
