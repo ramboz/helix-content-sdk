@@ -116,8 +116,8 @@ console.log(results);
   async getBlock(docPath, blockName)
   async updatePageMetadata(docPath, metadata)
   async updateSectionMetadata(docPath, sectionIndex, metadata)
-  async appendBlock(docPath, sectionIndex, blockMd)
-  async updateBlock(docPath, blockIndex, blockMd)
+  async appendBlock(docPath, sectionIndex, blockData)
+  async updateBlock(docPath, blockIndex, blockData)
   async removeBlock(docPath, blockIndex)
-  async insertBlockAt(docPath, sectionIndex, index, blockMd)
+  async insertBlockAt(docPath, sectionIndex, index, blockData)
 ```
