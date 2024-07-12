@@ -142,13 +142,19 @@ class SharepointClient extends GenericClient {
   async findRowInSheet(workbookPath, sheetId, filter) {
     const response = await this.#client.api(`${this.#getFullPath(workbookPath)}:/workbook/worksheets/${sheetId}/range(address='A:ZZ')/usedRange`)
       .get();
-    return response.values.find(filter);
+    const index = response.values.findIndex(filter);
+    return {
+      index,
+      values: response.values[index],
+    }
   }
 
   async findRowsInSheet(workbookPath, sheetId, filter) {
     const response = await this.#client.api(`${this.#getFullPath(workbookPath)}:/workbook/worksheets/${sheetId}/range(address='A:ZZ')/usedRange`)
       .get();
-    return response.values.filter(filter);
+    return response.values
+      .map((row, index) => ({ index, values: row }))
+      .filter((result) => filter(result.values));
   }
 
   async appendColumnToSheet(workbookPath, sheetId, values) {
