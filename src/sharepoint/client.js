@@ -13,11 +13,11 @@ class SharepointClient extends GenericClient {
 
   constructor(options) {
     super();
-    const { domain, domainId, siteId, rootPath = ''} = options.documentStoreConfig;
+    const { domain, domainId, rootPath = ''} = options.documentStoreConfig;
     this.#client = graph.Client.init({
       authProvider: (done) => done(null, options.auth),
     });
-    this.#baseUri = `/sites/${domain},${domainId},${siteId}/drive/root:${rootPath}`;
+    this.#baseUri = `/sites/${domain},${domainId}/drive/root:${rootPath}`;
   }
 
   /* Helper methods */
